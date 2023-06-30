@@ -76,7 +76,7 @@ jobs:
         run: npm run build
 
   deploy:
-    needs: [ trigger, build ]
+    needs: [ demo, build ]
     name: deploy
     runs-on: ubuntu-latest
     if: ${{ github.event.issue.pull_request }} # only run on pull request comments
