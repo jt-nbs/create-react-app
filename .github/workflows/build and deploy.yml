@@ -11,6 +11,8 @@ permissions:
   deployments: write
   contents: write
   checks: read
+  pages: write
+  id-token: write
 
 jobs:
 
