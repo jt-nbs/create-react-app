@@ -17,19 +17,13 @@ permissions:
 jobs:
 
   demo:
-    if: ${{ github.event.issue.pull_request }}
+    if: # only run on pull request comments and very specific comment body string as defined in our branch-deploy settings
+      ${{ github.event.issue.pull_request &&
+      (contains(github.event.comment.body, '.deploy') ||
+      contains(github.event.comment.body, '.lock') ||
+      contains(github.event.comment.body, '.wcid') ||
+      contains(github.event.comment.body, '.unlock')) }}
     runs-on: ubuntu-latest
-    steps:
-      # execute the branch-deploy action
-      - uses: github/branch-deploy@v6.0.1
-        id: branch-deploy
-        with:
-          trigger: ".deploy"
-          # environment: "production"
-          # production_environment: "production"
-          # environment_targets: "production,development,staging"
-          skip_completing: "true" # we will complete the deployment manually in the 'result' job
-          # admins: "false" # <--- add your GitHub username here (if you want to use the admins feature)
       
     outputs:
       continue: ${{ steps.branch-deploy.outputs.continue }}
@@ -41,22 +35,16 @@ jobs:
       initial_reaction_id: ${{ steps.branch-deploy.outputs.initial_reaction_id }}
       actor_handle: ${{ steps.branch-deploy.outputs.actor_handle }}
 
-
-      # - uses: actions/checkout@v3
-      #   with:
-      #     ref: ${{ steps.branch-deploy.outputs.ref }}
-
-      # # Do some fake "noop" deployment logic here
-      # # conditionally run a noop deployment
-      # - name: fake noop deploy
-      #   if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
-      #   run: echo "I am doing a fake noop deploy"
-
-      # # Do some fake "regular" deployment logic here
-      # # conditionally run a regular deployment
-      # - name: fake regular deploy
-      #   if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
-      #   run: echo "I am doing a fake regular deploy"
+    steps:
+      # execute the branch-deploy action
+      - uses: github/branch-deploy@vX.X.X
+        id: branch-deploy
+        with:
+          trigger: ".deploy"
+          # environment: "github-pages"
+          # production_environment: "github-pages"
+          skip_completing: "true" # we will complete the deployment manually in the 'result' job
+          # admins: "false" # <--- add your GitHub username here (if you want to use the admins feature)
 
   build:
     needs: [ demo ]
@@ -86,25 +74,13 @@ jobs:
 
   deploy:
     needs: [ demo, build ]
-    name: deploy
     runs-on: ubuntu-latest
-    if: ${{ github.event.issue.pull_request }} # only run on pull request comments
+    if: ${{ needs.demo.outputs.continue == 'true' }} # only run if the trigger job set continue to true
 
     steps:
-
-          # The branch-deploy Action
-      - name: branch-deploy
-        id: branch-deploy
-        uses: github/branch-deploy@v6.0.1
           
-        # If the branch-deploy Action was triggered, checkout our branch
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ steps.branch-deploy.outputs.ref }}
-
         # If the branch-deploy Action was triggered, run the deployment (i.e. '.deploy')
       - name: deploy
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
         run: echo "Complete deployment" # this could be anything you want
 
   result:
@@ -197,3 +173,4 @@ jobs:
             ### Deployment Results ❌
 
             **${{ needs.demo.outputs.actor_handle }}** had a failure when deploying `${{ needs.demo.outputs.ref }}` to **${{ needs.demo.outputs.environment }}**
+
