@@ -29,68 +29,67 @@ jobs:
           # skip_completing: "true" # we will complete the deployment manually in the 'result' job
           # admins: "false" # <--- add your GitHub username here (if you want to use the admins feature)
 
+      # - uses: actions/checkout@v3
+      #   with:
+      #     ref: ${{ steps.branch-deploy.outputs.ref }}
+
+      # # Do some fake "noop" deployment logic here
+      # # conditionally run a noop deployment
+      # - name: fake noop deploy
+      #   if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
+      #   run: echo "I am doing a fake noop deploy"
+
+      # # Do some fake "regular" deployment logic here
+      # # conditionally run a regular deployment
+      # - name: fake regular deploy
+      #   if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+      #   run: echo "I am doing a fake regular deploy"
+
+  build:
+    needs: [ demo ]
+    if: ${{ needs.trigger.outputs.continue == 'true' }} # only run if the trigger job set continue to true
+    # environment:
+    #   name: github-pages
+    name: 'Build (${{ matrix.os }}, Node ${{ matrix.node }})'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - 'ubuntu-latest'
+        node:
+          - '16'
+    
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+      - name: Build
+        run: npm run build
+
+  deploy:
+    needs: [ demo, build ]
+    name: deploy
+    runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request }} # only run on pull request comments
+
+    steps:
+
+          # The branch-deploy Action
+      - name: branch-deploy
+        id: branch-deploy
+        uses: github/branch-deploy@v6.0.1
+          
+        # If the branch-deploy Action was triggered, checkout our branch
       - uses: actions/checkout@v3
         with:
           ref: ${{ steps.branch-deploy.outputs.ref }}
 
-      # Do some fake "noop" deployment logic here
-      # conditionally run a noop deployment
-      - name: fake noop deploy
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
-        run: echo "I am doing a fake noop deploy"
-
-      # Do some fake "regular" deployment logic here
-      # conditionally run a regular deployment
-      - name: fake regular deploy
+        # If the branch-deploy Action was triggered, run the deployment (i.e. '.deploy')
+      - name: deploy
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
-        run: echo "I am doing a fake regular deploy"
-
-  # build:
-  #   needs: [ demo ]
-  #   if: ${{ needs.trigger.outputs.continue == 'true' }} # only run if the trigger job set continue to true
-  #   # environment:
-  #   #   name: github-pages
-  #   name: 'Build (${{ matrix.os }}, Node ${{ matrix.node }})'
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       os:
-  #         - 'ubuntu-latest'
-  #       node:
-  #         - '16'
-    
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-node@v3
-  #       with:
-  #         node-version: ${{ matrix.node }}
-  #         cache: 'npm'
-  #     - name: Install dependencies
-  #       run: npm ci --prefer-offline
-  #     - name: Build
-  #       run: npm run build
-
-  # deploy:
-  #   needs: [ demo, build ]
-  #   name: deploy
-  #   runs-on: ubuntu-latest
-  #   if: ${{ github.event.issue.pull_request }} # only run on pull request comments
-
-  #   steps:
-
-  #         # The branch-deploy Action
-  #     - name: branch-deploy
-  #       id: branch-deploy
-  #       uses: github/branch-deploy@v6.0.1
-          
-  #       # If the branch-deploy Action was triggered, checkout our branch
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         ref: ${{ steps.branch-deploy.outputs.ref }}
-
-  #       # If the branch-deploy Action was triggered, run the deployment (i.e. '.deploy')
-  #     - name: deploy
-  #       if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
-  #       run: echo "Complete deployment" # this could be anything you want
-  
+        run: echo "Complete deployment" # this could be anything you want
