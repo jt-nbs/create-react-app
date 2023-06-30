@@ -37,7 +37,7 @@ jobs:
 
     steps:
       # execute the branch-deploy action
-      - uses: github/branch-deploy@vX.X.X
+      - uses: github/branch-deploy@v6.0.1
         id: branch-deploy
         with:
           trigger: ".deploy"
@@ -173,4 +173,3 @@ jobs:
             ### Deployment Results ❌
 
             **${{ needs.demo.outputs.actor_handle }}** had a failure when deploying `${{ needs.demo.outputs.ref }}` to **${{ needs.demo.outputs.environment }}**
-
