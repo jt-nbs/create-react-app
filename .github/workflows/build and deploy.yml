@@ -39,17 +39,17 @@ jobs:
         id: branch-deploy
         with:
           trigger: ".deploy"
-          environment: "production"
-          production_environment: "production"
-          environment_targets: "production,development,staging"
+          # environment: "production"
+          # production_environment: "production"
+          # environment_targets: "production,development,staging"
           # skip_completing: "true" # we will complete the deployment manually in the 'result' job
           # admins: "false" # <--- add your GitHub username here (if you want to use the admins feature)
 
   build:
     needs: [ trigger ]
     if: ${{ needs.trigger.outputs.continue == 'true' }} # only run if the trigger job set continue to true
-    environment:
-      name: github-pages
+    # environment:
+    #   name: github-pages
     name: 'Build (${{ matrix.os }}, Node ${{ matrix.node }})'
     runs-on: ${{ matrix.os }}
     strategy:
