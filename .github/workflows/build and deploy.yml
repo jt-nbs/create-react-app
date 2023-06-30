@@ -26,7 +26,7 @@ jobs:
           # environment: "production"
           # production_environment: "production"
           # environment_targets: "production,development,staging"
-          # skip_completing: "true" # we will complete the deployment manually in the 'result' job
+          skip_completing: "true" # we will complete the deployment manually in the 'result' job
           # admins: "false" # <--- add your GitHub username here (if you want to use the admins feature)
       
     outputs:
@@ -104,3 +104,94 @@ jobs:
       - name: deploy
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
         run: echo "Complete deployment" # this could be anything you want
+
+  result:
+    needs: [ demo, build, deploy ]
+    runs-on: ubuntu-latest
+    # run even on failures but only if the trigger job set continue to true
+    if: ${{ always() && needs.demo.outputs.continue == 'true' }}
+
+    steps:
+      # if a previous step failed, set a variable to use as the deployment status
+      - name: set deployment status
+        id: deploy-status
+        if: ${{ needs.demo.result == 'failure' || needs.build.result == 'failure' ||
+          needs.deploy.result == 'failure' }}
+        run: |
+          echo "DEPLOY_STATUS=failure" >> $GITHUB_OUTPUT
+
+      # use the GitHub CLI to update the deployment status that was initiated by the branch-deploy action
+      - name: Create a deployment status
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_STATUS: ${{ steps.deploy-status.outputs.DEPLOY_STATUS }}
+        run: |
+          if [ -z "${DEPLOY_STATUS}" ]; then
+            DEPLOY_STATUS="success"
+          fi
+
+          gh api \
+            --method POST \
+            repos/{owner}/{repo}/deployments/${{ needs.demo.outputs.deployment_id }}/statuses \
+            -f environment='${{ needs.demo.outputs.environment }}' \
+            -f state=${DEPLOY_STATUS}
+      
+      # use the GitHub CLI to remove the non-sticky lock that was created by the branch-deploy action
+      - name: Remove a non-sticky lock
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            --method DELETE \
+            repos/{owner}/{repo}/git/refs/heads/${{ needs.demo.outputs.environment }}-branch-deploy-lock
+
+      # remove the default 'eyes' reaction from the comment that triggered the deployment
+      # this reaction is added by the branch-deploy action by default
+      - name: remove eyes reaction
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            --method DELETE \
+            repos/{owner}/{repo}/issues/comments/${{ needs.demo.outputs.comment_id }}/reactions/${{ needs.demo.outputs.initial_reaction_id }}
+
+      # if the deployment was successful, add a 'rocket' reaction to the comment that triggered the deployment
+      - name: rocket reaction
+        if: ${{ steps.deploy-status.outputs.DEPLOY_STATUS != 'failure' }}
+        uses: GrantBirki/comment@1e9986de26cf23e6c4350276234c91705c540fef # pin@v2.0.3
+        with:
+          comment-id: ${{ needs.demo.outputs.comment_id }}
+          reactions: rocket
+
+      # if the deployment failed, add a '-1' (thumbs down) reaction to the comment that triggered the deployment
+      - name: failure reaction
+        if: ${{ steps.deploy-status.outputs.DEPLOY_STATUS == 'failure' }}
+        uses: GrantBirki/comment@1e9986de26cf23e6c4350276234c91705c540fef # pin@v2.0.3
+        with:
+          comment-id: ${{ needs.demo.outputs.comment_id }}
+          reactions: "-1"
+
+      # if the deployment was successful, add a 'success' comment
+      - name: success comment
+        if: ${{ steps.deploy-status.outputs.DEPLOY_STATUS != 'failure' }}
+        uses: peter-evans/create-or-update-comment@67dcc547d311b736a8e6c5c236542148a47adc3d # pin@v2.1.1
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ### Deployment Results ✅
+
+            **${{ needs.demo.outputs.actor_handle }}** successfully deployed branch `${{ needs.demo.outputs.ref }}` to **${{ needs.demo.outputs.environment }}**
+
+      # if the deployment was not successful, add a 'failure' comment
+      - name: failure comment
+        if: ${{ steps.deploy-status.outputs.DEPLOY_STATUS == 'failure' }}
+        uses: peter-evans/create-or-update-comment@67dcc547d311b736a8e6c5c236542148a47adc3d # pin@v2.1.1
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ### Deployment Results ❌
+
+            **${{ needs.demo.outputs.actor_handle }}** had a failure when deploying `${{ needs.demo.outputs.ref }}` to **${{ needs.demo.outputs.environment }}**
