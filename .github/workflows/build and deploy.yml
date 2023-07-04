@@ -46,6 +46,7 @@ jobs:
           # production_environment: "github-pages"
           skip_completing: "true" # we will complete the deployment manually in the 'result' job
           # admins: "false" # <--- add your GitHub username here (if you want to use the admins feature)
+          skip_reviews: "staging"
 
   build:
     needs: [ demo ]
@@ -177,3 +178,4 @@ jobs:
             ### Deployment Results ❌
 
             **${{ needs.demo.outputs.actor_handle }}** had a failure when deploying `${{ needs.demo.outputs.ref }}` to **${{ needs.demo.outputs.environment }}**
+
