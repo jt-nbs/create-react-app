@@ -84,7 +84,7 @@ jobs:
       - name: deploy
         run: |
           echo "Deploying to ${{needs.demo.outputs.environment}}" # this could be anything you want
-          echo "$S3_BUCKET"
+          echo "${{ vars.S3_BUCKET }}"
 
   result:
     needs: [ demo, build, deploy ]
@@ -176,3 +176,4 @@ jobs:
             ### Deployment Results ❌
 
             **${{ needs.demo.outputs.actor_handle }}** had a failure when deploying `${{ needs.demo.outputs.ref }}` to **${{ needs.demo.outputs.environment }}**
+
