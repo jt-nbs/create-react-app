@@ -76,6 +76,7 @@ jobs:
   deploy:
     needs: [ demo, build ]
     runs-on: ubuntu-latest
+    environment: ${{ needs.demo.outputs.environment }}
     if: ${{ needs.demo.outputs.continue == 'true' }} # only run if the trigger job set continue to true
 
     steps:
@@ -176,4 +177,3 @@ jobs:
             ### Deployment Results ❌
 
             **${{ needs.demo.outputs.actor_handle }}** had a failure when deploying `${{ needs.demo.outputs.ref }}` to **${{ needs.demo.outputs.environment }}**
-
