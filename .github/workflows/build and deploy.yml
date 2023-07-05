@@ -42,7 +42,7 @@ jobs:
         with:
           trigger: ".deploy"
           environment: "production"
-          environment_targets: "production,staging"
+          # environment_targets: "production"
           # production_environment: "github-pages"
           skip_completing: "true" # we will complete the deployment manually in the 'result' job
           # admins: "false" # <--- add your GitHub username here (if you want to use the admins feature)
@@ -192,3 +192,4 @@ jobs:
             ### Deployment Results ❌
 
             **${{ needs.demo.outputs.actor_handle }}** had a failure when deploying `${{ needs.demo.outputs.ref }}` to **${{ needs.demo.outputs.environment }}**
+
