@@ -42,7 +42,7 @@ jobs:
         with:
           trigger: ".deploy"
           environment: "production"
-          # environment_targets: "production"
+          environment_targets: "staging"
           # production_environment: "github-pages"
           skip_completing: "true" # we will complete the deployment manually in the 'result' job
           # admins: "false" # <--- add your GitHub username here (if you want to use the admins feature)
@@ -84,10 +84,9 @@ jobs:
           
         # If the branch-deploy Action was triggered, run the deployment (i.e. '.deploy')
       - name: deployStaging
-        if: |
-          ${{ needs.demo.outputs.environment == 'staging' &&
-          needs.demo.outputs.noop != 'true' &&
-          needs.demo.outputs.outputs.continue == 'true' }}
+        if: ${{ needs.demo.outputs.environment == 'staging' && 
+          needs.demo.outputs.noop != 'true' && 
+          needs.demo.outputs.continue == 'true' }}
         run: |
           echo "Deploying to Staging" # this could be anything you want
           echo "${{ vars.S3_BUCKET }}"
@@ -96,7 +95,7 @@ jobs:
         if: |
           ${{ needs.demo.outputs.environment == 'production' &&
           needs.demo.outputs.noop != 'true' &&
-          needs.demo.outputs.outputs.continue == 'true' }}
+          needs.demo.outputs.continue == 'true' }}
         run: |
           echo "Deploying to Production" # this could be anything you want
           echo "${{ vars.S3_BUCKET }}"
@@ -191,3 +190,4 @@ jobs:
             ### Deployment Results ❌
 
             **${{ needs.demo.outputs.actor_handle }}** had a failure when deploying `${{ needs.demo.outputs.ref }}` to **${{ needs.demo.outputs.environment }}**
+
