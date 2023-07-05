@@ -113,7 +113,7 @@ jobs:
       - name: set deployment status
         id: deploy-status
         if: ${{ needs.demo.result == 'failure' || needs.build.result == 'failure' ||
-          needs.deploy.result == 'failure' }}
+          needs.deployProd.result == 'failure' }}
         run: |
           echo "DEPLOY_STATUS=failure" >> $GITHUB_OUTPUT
 
