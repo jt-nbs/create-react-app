@@ -92,8 +92,7 @@ jobs:
           echo "${{ vars.S3_BUCKET }}"
 
       - name: deployProd
-        if: |
-          ${{ needs.demo.outputs.environment == 'production' &&
+        if: ${{ needs.demo.outputs.environment == 'production' &&
           needs.demo.outputs.noop != 'true' &&
           needs.demo.outputs.continue == 'true' }}
         run: |
